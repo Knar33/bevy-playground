@@ -2,6 +2,7 @@
 
 use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
+use bevy::window::{CursorGrabMode, PrimaryWindow};
 use bevy_rapier3d::prelude::*;
 
 #[derive(Component)]
@@ -12,11 +13,17 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugins(RapierDebugRenderPlugin::default())
-        .add_systems(Startup, setup_physics)
+        .add_systems(Startup, (setup, setup_physics))
         .add_systems(Update, print_ball_altitude)
-        .add_systems(Startup, setup)
-        .add_systems(Update, (keys, mouse))
+        .add_systems(Update, (keys, mouse, cursor_grab))
         .run();
+}
+
+fn cursor_grab(mut q_windows: Query<&mut Window, With<PrimaryWindow>>) {
+    let mut primary_window = q_windows.single_mut();
+    //primary_window.cursor.grab_mode = CursorGrabMode::Confined;
+    primary_window.cursor.grab_mode = CursorGrabMode::Locked;
+    primary_window.cursor.visible = false;
 }
 
 fn setup_physics(mut commands: Commands) {
@@ -35,7 +42,7 @@ fn setup_physics(mut commands: Commands) {
 
 fn print_ball_altitude(mut positions: Query<&mut Transform, With<RigidBody>>) {
     for mut transform in positions.iter_mut() {
-        dbg!(transform.rotation.to_axis_angle());
+        //dbg!(transform.rotation.to_axis_angle());
         transform.rotation = Quat::from_rotation_z(270_f32.to_radians());
         //println!("Ball altitude: {}", transform.translation.y);
     }
@@ -118,7 +125,9 @@ fn mouse(
         for mut transform in &mut query {
             transform.rotate_local_z(ev.delta.y * -0.01);
             transform.rotate_y(ev.delta.x * -0.01);
-            //println!("x: {} y: {}", transform.rotation.z, transform.rotation.y);
+            if (transform.rotation.z != 0.0 || transform.rotation.y != 0.0) {
+                println!("x: {} y: {}", transform.rotation.z, transform.rotation.y);
+            }
         }
     }
 }
