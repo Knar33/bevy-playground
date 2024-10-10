@@ -1,5 +1,5 @@
 use bevy::{
-    input::{keyboard::KeyboardInput, ButtonState},
+    input::{keyboard::KeyboardInput, ButtonState, InputSystem},
     prelude::*,
 };
 use std::collections::HashSet;
@@ -13,25 +13,17 @@ impl Plugin for KeyboardPlugin {
             released: HashSet::new(),
             holding: HashSet::new(),
         });
-        app.add_systems(Update, read_keystrokes);
+        app.add_systems(PreUpdate, read_keyboard_events.after(InputSystem));
+        app.add_systems(FixedUpdate, read_keystrokes_fixed);
     }
 }
 
-#[derive(Eq, Hash, PartialEq)]
-enum KeyboardCombination {
-    None(KeyCode),
-    Shift(KeyCode),
-    Control(KeyCode),
-    Super(KeyCode),
-    Alt(KeyCode),
-}
-
 /// resource that keeps track of which keys were pressed every frame and stores them until they can be read by Fixed Update
-#[derive(Resource)]
+#[derive(Resource, Debug)]
 struct Keystrokes {
-    pressed: HashSet<KeyboardCombination>,
-    released: HashSet<KeyboardCombination>,
-    holding: HashSet<KeyboardCombination>,
+    pressed: HashSet<KeyCode>,
+    released: HashSet<KeyCode>,
+    holding: HashSet<KeyCode>,
 }
 
 /// system that reads keystrokes every frame and records them to a HashSet resource Keystrokes
@@ -40,48 +32,47 @@ struct Keystrokes {
 /// - key that was held down previous frame is quickly released then held down again (will have a released, pressed, and holding entry)
 /// - key press + key press release, repeated twice before the next fixed update - will only show up as a single press and release
 /// - Multiple modifiers are being held down and a third key is pressed (priority goes in this order and only applies the first one: shift, control, super, alt)
-fn read_keystrokes(
+/// - multiple keybindings are pressed at the same time
+/// - key being held down gets spammed, don't send a bunch of pressed events
+/// modifier pressed and released, then key pressed, all before next fixedupdate - treat it like a modified key press?
+fn read_keyboard_events(
     mut keyboard_events: EventReader<KeyboardInput>,
     mut keystrokes: ResMut<Keystrokes>,
     keys: Res<ButtonInput<KeyCode>>,
 ) {
-    let shift_down = keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]);
-    let control_down = keys.any_pressed([KeyCode::ControlLeft, KeyCode::ControlRight]);
-    let super_down = keys.any_pressed([KeyCode::SuperLeft, KeyCode::SuperRight]);
-    let alt_down = keys.any_pressed([KeyCode::AltLeft, KeyCode::AltRight]);
-
     for event in keyboard_events.read() {
-        let modifier = if shift_down {
-            KeyboardCombination::Shift
-        } else if control_down {
-            KeyboardCombination::Control
-        } else if super_down {
-            KeyboardCombination::Alt
-        } else if alt_down {
-            KeyboardCombination::Super
-        } else {
-            KeyboardCombination::None
-        };
-
         match event.state {
             ButtonState::Pressed => {
-                println!("Key press: {:?} ({:?})", event.key_code, event.logical_key);
-                //TODO: Don't add to pressed if it's already being held down
-                keystrokes.pressed.insert(modifier(event.key_code));
-                keystrokes.holding.insert(modifier(event.key_code));
+                //this handles holding keys down and the OS spams the key
+                if !keystrokes.holding.contains(&event.key_code) {
+                    keystrokes.pressed.insert(event.key_code);
+                }
+                keystrokes.holding.insert(event.key_code);
             }
             ButtonState::Released => {
-                println!(
-                    "Key release: {:?} ({:?})",
-                    event.key_code, event.logical_key
-                );
-                keystrokes.released.insert(modifier(event.key_code));
-                keystrokes.holding.remove(&modifier(event.key_code));
+                keystrokes.released.insert(event.key_code);
+                keystrokes.holding.remove(&event.key_code);
             }
         }
     }
 }
 
-//system on fixedupdate that reads the resource and does something with them
-//system on fixedupdate that resets all keys (after the one that reads them)
-//system to track window focus to reset keystroke state if the window changes https://bevy-cheatbook.github.io/input/keyboard.html#keyboard-focus
+/// system on fixedupdate that reads the resource and does something with them
+/// resets all pressed and released keys but maintains the holding keys
+fn read_keystrokes_fixed(mut keystrokes: ResMut<Keystrokes>) {
+    for pressed in &keystrokes.pressed {
+        println!("Pressed {:?}", pressed);
+    }
+    keystrokes.pressed.clear();
+
+    for released in &keystrokes.released {
+        println!("Released {:?}", released);
+    }
+    keystrokes.released.clear();
+
+    for holding in &keystrokes.holding {
+        println!("Holding {:?}", holding);
+    }
+}
+
+//system to track window focus to reset keystroke state if the window changes https://bevy-cheatbook.github.io/input/keyboard.html#keyboard-focus release all held keys
