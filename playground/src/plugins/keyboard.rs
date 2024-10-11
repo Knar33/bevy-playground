@@ -1,5 +1,8 @@
 use bevy::{
-    input::{keyboard::KeyboardInput, ButtonState, InputSystem},
+    input::{
+        keyboard::{KeyboardFocusLost, KeyboardInput},
+        ButtonState, InputSystem,
+    },
     prelude::*,
 };
 use std::collections::HashSet;
@@ -14,6 +17,7 @@ impl Plugin for KeyboardPlugin {
             holding: HashSet::new(),
         });
         app.add_systems(PreUpdate, read_keyboard_events.after(InputSystem));
+        app.add_systems(Update, detect_keyboard_focus_lost);
         app.add_systems(FixedUpdate, read_keystrokes_fixed);
     }
 }
@@ -34,11 +38,11 @@ struct Keystrokes {
 /// - Multiple modifiers are being held down and a third key is pressed (priority goes in this order and only applies the first one: shift, control, super, alt)
 /// - multiple keybindings are pressed at the same time
 /// - key being held down gets spammed, don't send a bunch of pressed events
-/// modifier pressed and released, then key pressed, all before next fixedupdate - treat it like a modified key press?
+/// - modifier pressed and released, then key pressed, all before next fixedupdate - treat it like a modified key press?
+/// - handle modifier being used for something else - like holding shift down to sprint
 fn read_keyboard_events(
     mut keyboard_events: EventReader<KeyboardInput>,
     mut keystrokes: ResMut<Keystrokes>,
-    keys: Res<ButtonInput<KeyCode>>,
 ) {
     for event in keyboard_events.read() {
         match event.state {
@@ -75,4 +79,13 @@ fn read_keystrokes_fixed(mut keystrokes: ResMut<Keystrokes>) {
     }
 }
 
-//system to track window focus to reset keystroke state if the window changes https://bevy-cheatbook.github.io/input/keyboard.html#keyboard-focus release all held keys
+/// system to track window focus to reset keystroke state if the window changes release all held keys
+fn detect_keyboard_focus_lost(
+    mut keyboard_focus_lost: EventReader<KeyboardFocusLost>,
+    mut keystrokes: ResMut<Keystrokes>,
+) {
+    if !keyboard_focus_lost.is_empty() {
+        keystrokes.holding.clear();
+        keyboard_focus_lost.clear();
+    }
+}
