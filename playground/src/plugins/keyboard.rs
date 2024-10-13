@@ -31,15 +31,6 @@ struct Keystrokes {
 }
 
 /// system that reads keystrokes every frame and records them to a HashSet resource Keystrokes
-/// edge cases to consider:
-/// - modifier and key held down, then one released while the other is held down still
-/// - key that was held down previous frame is quickly released then held down again (will have a released, pressed, and holding entry)
-/// - key press + key press release, repeated twice before the next fixed update - will only show up as a single press and release
-/// - Multiple modifiers are being held down and a third key is pressed (priority goes in this order and only applies the first one: shift, control, super, alt)
-/// - multiple keybindings are pressed at the same time
-/// - key being held down gets spammed, don't send a bunch of pressed events
-/// - modifier pressed and released, then key pressed, all before next fixedupdate - treat it like a modified key press?
-/// - handle modifier being used for something else - like holding shift down to sprint
 fn read_keyboard_events(
     mut keyboard_events: EventReader<KeyboardInput>,
     mut keystrokes: ResMut<Keystrokes>,
