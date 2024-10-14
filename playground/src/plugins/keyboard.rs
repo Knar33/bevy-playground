@@ -4,8 +4,8 @@ use bevy::{
         ButtonState, InputSystem,
     },
     prelude::*,
+    utils::HashSet,
 };
-use std::collections::HashSet;
 
 pub struct KeyboardPlugin;
 
@@ -18,7 +18,7 @@ impl Plugin for KeyboardPlugin {
         });
         app.add_systems(PreUpdate, read_keyboard_events.after(InputSystem));
         app.add_systems(Update, detect_keyboard_focus_lost);
-        app.add_systems(PostUpdate, cleanup_keystrokes);
+        app.add_systems(FixedPostUpdate, cleanup_keystrokes);
     }
 }
 
