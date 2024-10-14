@@ -18,7 +18,7 @@ impl Plugin for KeyboardPlugin {
         });
         app.add_systems(PreUpdate, read_keyboard_events.after(InputSystem));
         app.add_systems(Update, detect_keyboard_focus_lost);
-        app.add_systems(FixedUpdate, read_keystrokes_fixed);
+        app.add_systems(PostUpdate, cleanup_keystrokes);
     }
 }
 
@@ -52,22 +52,10 @@ fn read_keyboard_events(
     }
 }
 
-/// system on fixedupdate that reads the resource and does something with them
-/// resets all pressed and released keys but maintains the holding keys
-fn read_keystrokes_fixed(mut keystrokes: ResMut<Keystrokes>) {
-    for pressed in &keystrokes.pressed {
-        println!("Pressed {:?}", pressed);
-    }
+/// system that resets all pressed and released keys but maintains the holding keys
+fn cleanup_keystrokes(mut keystrokes: ResMut<Keystrokes>) {
     keystrokes.pressed.clear();
-
-    for released in &keystrokes.released {
-        println!("Released {:?}", released);
-    }
     keystrokes.released.clear();
-
-    for holding in &keystrokes.holding {
-        println!("Holding {:?}", holding);
-    }
 }
 
 /// system to track window focus to reset keystroke state if the window changes release all held keys
