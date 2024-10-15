@@ -18,11 +18,11 @@ impl Plugin for KeyboardPlugin {
         });
         app.add_systems(PreUpdate, read_keyboard_events.after(InputSystem));
         app.add_systems(Update, detect_keyboard_focus_lost);
-        app.add_systems(FixedPostUpdate, cleanup_keystrokes);
+        app.add_systems(PostUpdate, cleanup_keystrokes);
     }
 }
 
-/// resource that keeps track of which keys were pressed every frame and stores them until they can be read by Fixed Update
+/// resource that keeps track of which keys were pressed every frame to be converted into bindings
 #[derive(Resource, Debug)]
 struct Keystrokes {
     pressed: HashSet<KeyCode>,
@@ -38,10 +38,7 @@ fn read_keyboard_events(
     for event in keyboard_events.read() {
         match event.state {
             ButtonState::Pressed => {
-                //this handles holding keys down and the OS spams the key
-                if !keystrokes.holding.contains(&event.key_code) {
-                    keystrokes.pressed.insert(event.key_code);
-                }
+                keystrokes.pressed.insert(event.key_code);
                 keystrokes.holding.insert(event.key_code);
             }
             ButtonState::Released => {
