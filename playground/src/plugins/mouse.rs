@@ -26,24 +26,24 @@ impl Plugin for MousePlugin {
 
 /// resource that keeps track of which buttons were pressed every frame and stores them until they can be read by Fixed Update
 #[derive(Resource, Debug)]
-struct MouseClicks {
-    pressed: HashSet<MouseButton>,
-    released: HashSet<MouseButton>,
-    holding: HashSet<MouseButton>,
+pub struct MouseClicks {
+    pub pressed: HashSet<MouseButton>,
+    pub released: HashSet<MouseButton>,
+    pub holding: HashSet<MouseButton>,
 }
 
 /// resource that records mouse movement every frame
 #[derive(Resource, Debug)]
-struct MouseMovement {
-    x: f32,
-    y: f32,
+pub struct MouseMovement {
+    pub x: f32,
+    pub y: f32,
 }
 
 /// resource that keeps a running total of mouse movement between each frame until FixedUpdate is able to process it
 #[derive(Resource, Debug)]
-struct FixedMouseMovement {
-    x: f32,
-    y: f32,
+pub struct FixedMouseMovement {
+    pub x: f32,
+    pub y: f32,
 }
 
 //system that reads mouse clicks and cursor movement and stores them in the appropriate resources

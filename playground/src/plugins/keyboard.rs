@@ -24,10 +24,10 @@ impl Plugin for KeyboardPlugin {
 
 /// resource that keeps track of which keys were pressed every frame to be converted into bindings
 #[derive(Resource, Debug)]
-struct Keystrokes {
-    pressed: HashSet<KeyCode>,
-    released: HashSet<KeyCode>,
-    holding: HashSet<KeyCode>,
+pub struct Keystrokes {
+    pub pressed: HashSet<KeyCode>,
+    pub released: HashSet<KeyCode>,
+    pub holding: HashSet<KeyCode>,
 }
 
 /// system that reads keystrokes every frame and records them to a HashSet resource Keystrokes
