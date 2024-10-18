@@ -12,19 +12,19 @@ impl Plugin for BindingsPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(KeyBindings(HashMap::from([
             (
-                KeyCombination::UnmodifiedKey(KeyCode::KeyW),
+                InputCombination::UnmodifiedKey(KeyCode::KeyW),
                 Action::MoveForward,
             ),
             (
-                KeyCombination::UnmodifiedKey(KeyCode::KeyS),
+                InputCombination::UnmodifiedKey(KeyCode::KeyS),
                 Action::MoveBackwards,
             ),
             (
-                KeyCombination::UnmodifiedKey(KeyCode::KeyA),
+                InputCombination::UnmodifiedKey(KeyCode::KeyA),
                 Action::MoveLeft,
             ),
             (
-                KeyCombination::UnmodifiedKey(KeyCode::KeyD),
+                InputCombination::UnmodifiedKey(KeyCode::KeyD),
                 Action::MoveRight,
             ),
         ])));
@@ -45,7 +45,7 @@ impl Plugin for BindingsPlugin {
 
 /// Hashmap that contains the KeyCombination to Action bindings
 #[derive(Resource, Debug, Eq, PartialEq)]
-pub struct KeyBindings(pub HashMap<KeyCombination, Action>);
+pub struct KeyBindings(pub HashMap<InputCombination, Action>);
 
 /// resource that keeps track of which actions were initiated by keypressed in this frame
 #[derive(Resource, Debug)]
@@ -74,17 +74,18 @@ pub enum Action {
 }
 
 #[derive(Debug, Eq, PartialEq, Hash)]
-pub enum KeyCombination {
-    UnmodifiedKey(KeyCode),
-    ShiftModifiedKey(KeyCode),
-    CtrlModifiedKey(KeyCode),
-    SuperModifiedKey(KeyCode),
-    AltModifiedKey(KeyCode),
-    UnmodifiedButton(MouseButton),
-    ShiftModifiedButton(MouseButton),
-    CtrlModifiedButton(MouseButton),
-    SuperModifiedButton(MouseButton),
-    AltModifiedButton(MouseButton),
+pub enum InputCombination {
+    Unmodified(Input),
+    ShiftModified(Input),
+    CtrlModified(Input),
+    SuperModified(Input),
+    AltModified(Input),
+}
+
+#[derive(Debug, Eq, PartialEq, Hash)]
+pub enum Input {
+    Mouse(KeyCode),
+    Keyboard(MouseButton),
 }
 
 /// system that reads keystrokes every frame and records them to a HashSet resource Keystrokes
