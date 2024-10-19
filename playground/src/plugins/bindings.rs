@@ -1,10 +1,10 @@
 use bevy::{
-    input::keyboard::NativeKeyCode,
+    input::keyboard::KeyCode,
     prelude::*,
     utils::{HashMap, HashSet},
 };
 
-use crate::plugins::{keyboard::Keystrokes, mouse::MouseClicks};
+use crate::plugins::input::{Input, Inputs};
 
 pub struct BindingsPlugin;
 
@@ -12,19 +12,19 @@ impl Plugin for BindingsPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(KeyBindings(HashMap::from([
             (
-                InputCombination::UnmodifiedKey(KeyCode::KeyW),
+                InputCombination::Unmodified(Input::Keyboard(KeyCode::KeyW)),
                 Action::MoveForward,
             ),
             (
-                InputCombination::UnmodifiedKey(KeyCode::KeyS),
+                InputCombination::Unmodified(Input::Keyboard(KeyCode::KeyS)),
                 Action::MoveBackwards,
             ),
             (
-                InputCombination::UnmodifiedKey(KeyCode::KeyA),
+                InputCombination::Unmodified(Input::Keyboard(KeyCode::KeyA)),
                 Action::MoveLeft,
             ),
             (
-                InputCombination::UnmodifiedKey(KeyCode::KeyD),
+                InputCombination::Unmodified(Input::Keyboard(KeyCode::KeyD)),
                 Action::MoveRight,
             ),
         ])));
@@ -40,6 +40,7 @@ impl Plugin for BindingsPlugin {
             released: HashSet::new(),
             holding: HashSet::new(),
         });
+        app.add_systems(Update, convert_inputs_to_actions);
     }
 }
 
@@ -82,22 +83,19 @@ pub enum InputCombination {
     AltModified(Input),
 }
 
-#[derive(Debug, Eq, PartialEq, Hash)]
-pub enum Input {
-    Mouse(KeyCode),
-    Keyboard(MouseButton),
-}
-
 /// system that reads keystrokes every frame and records them to a HashSet resource Keystrokes
 fn convert_inputs_to_actions(
-    mut keystrokes: ResMut<Keystrokes>,
-    mut mouse_clicks: ResMut<MouseClicks>,
+    mut inputs: ResMut<Inputs>,
     mut actions: ResMut<Actions>,
     mut fixed_actions: ResMut<FixedActions>,
 ) {
-    for pressed in &keystrokes.pressed {
-        if keystrokes.holding.contains(&KeyCode::ShiftLeft)
-            || keystrokes.holding.contains(&KeyCode::ShiftRight)
-        {}
+    for pressed in &inputs.pressed {
+        println!("pressed {:?}", pressed)
+    }
+    for holding in &inputs.holding {
+        println!("holding {:?}", holding)
+    }
+    for released in &inputs.released {
+        println!("released {:?}", released)
     }
 }
