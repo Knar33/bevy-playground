@@ -98,12 +98,18 @@ fn convert_inputs_to_actions(
     mut fixed_actions: ResMut<FixedActions>,
 ) {
     for pressed in &inputs.pressed {
-        println!("pressed {:?}", pressed)
-    }
-    for holding in &inputs.holding {
-        println!("holding {:?}", holding)
-    }
-    for released in &inputs.released {
-        println!("released {:?}", released)
+        let mut input_constructor: fn(Input) -> InputCombination = InputCombination::Unmodified;
+        let modified = false;
+        if let Input::Keyboard(key) = *pressed {
+            if key == KeyCode::ShiftLeft || key == KeyCode::ShiftRight {
+                input_constructor = InputCombination::ShiftModified;
+            } else if key == KeyCode::ControlLeft || key == KeyCode::ControlRight {
+                input_constructor = InputCombination::CtrlModified;
+            } else if key == KeyCode::SuperLeft || key == KeyCode::SuperRight {
+                input_constructor = InputCombination::SuperModified;
+            } else if key == KeyCode::AltLeft || key == KeyCode::AltRight {
+                input_constructor = InputCombination::AltModified;
+            }
+        }
     }
 }
