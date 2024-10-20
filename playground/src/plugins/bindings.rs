@@ -4,7 +4,10 @@ use bevy::{
     utils::{HashMap, HashSet},
 };
 
-use crate::plugins::input::{Input, Inputs};
+use crate::plugins::{
+    input,
+    input::{Input, Inputs},
+};
 
 pub struct BindingsPlugin;
 
@@ -40,7 +43,12 @@ impl Plugin for BindingsPlugin {
             released: HashSet::new(),
             holding: HashSet::new(),
         });
-        app.add_systems(Update, convert_inputs_to_actions);
+        app.add_systems(
+            Update,
+            convert_inputs_to_actions
+                .after(input::read_input_events)
+                .after(input::read_mouse_movement_events),
+        );
     }
 }
 

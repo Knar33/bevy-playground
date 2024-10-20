@@ -58,7 +58,7 @@ pub enum Input {
 }
 
 /// system that reads keystrokes every frame and records them to a HashSet resource Keystrokes
-fn read_input_events(
+pub fn read_input_events(
     mut keyboard_events: EventReader<KeyboardInput>,
     mut inputs: ResMut<Inputs>,
     mut mouse_button_events: EventReader<MouseButtonInput>,
@@ -91,7 +91,7 @@ fn read_input_events(
 }
 
 //system that reads mouse clicks and cursor movement and stores them in the appropriate resources
-fn read_mouse_movement_events(
+pub fn read_mouse_movement_events(
     mut mouse_motion_events: EventReader<MouseMotion>,
     mut mouse_movement: ResMut<MouseMovement>,
     mut fixed_mouse_movement: ResMut<FixedMouseMovement>,
@@ -105,7 +105,7 @@ fn read_mouse_movement_events(
 }
 
 /// system to track window focus to reset keystroke state if the window changes release all held keys
-fn detect_keyboard_focus_lost(
+pub fn detect_keyboard_focus_lost(
     mut keyboard_focus_lost: EventReader<KeyboardFocusLost>,
     mut inputs: ResMut<Inputs>,
 ) {
@@ -116,13 +116,13 @@ fn detect_keyboard_focus_lost(
 }
 
 /// system that resets all pressed and released keys but maintains the holding keys
-fn cleanup_inputs(mut inputs: ResMut<Inputs>) {
+pub fn cleanup_inputs(mut inputs: ResMut<Inputs>) {
     inputs.pressed.clear();
     inputs.released.clear();
 }
 
 /// system that resets all mouse movement at the end of fixed update
-fn cleanup_fixed_mouse_movement(mut mouse_movement: ResMut<FixedMouseMovement>) {
+pub fn cleanup_fixed_mouse_movement(mut mouse_movement: ResMut<FixedMouseMovement>) {
     mouse_movement.x = 0.;
     mouse_movement.y = 0.;
 }
