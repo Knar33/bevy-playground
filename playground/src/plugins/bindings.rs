@@ -1,5 +1,5 @@
 use bevy::{
-    input::keyboard::KeyCode,
+    input::{keyboard::KeyCode, mouse::MouseButtonInput},
     prelude::*,
     utils::{HashMap, HashSet},
 };
@@ -14,21 +14,16 @@ pub struct BindingsPlugin;
 impl Plugin for BindingsPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(KeyBindings(HashMap::from([
+            (Action::MoveForward, vec![Input::Keyboard(KeyCode::KeyW)]),
+            (Action::MoveLeft, vec![Input::Keyboard(KeyCode::KeyA)]),
+            (Action::MoveRight, vec![Input::Keyboard(KeyCode::KeyD)]),
+            //(Action::MoveBackward, vec![Input::Keyboard(KeyCode::KeyS)]),
             (
-                InputCombination::Unmodified(Input::Keyboard(KeyCode::KeyW)),
-                Action::MoveForward,
-            ),
-            (
-                InputCombination::Unmodified(Input::Keyboard(KeyCode::KeyS)),
-                Action::MoveBackwards,
-            ),
-            (
-                InputCombination::Unmodified(Input::Keyboard(KeyCode::KeyA)),
-                Action::MoveLeft,
-            ),
-            (
-                InputCombination::Unmodified(Input::Keyboard(KeyCode::KeyD)),
-                Action::MoveRight,
+                Action::MoveBackward,
+                vec![
+                    Input::Keyboard(KeyCode::KeyW),
+                    Input::Keyboard(KeyCode::ShiftLeft),
+                ],
             ),
         ])));
 
@@ -43,6 +38,7 @@ impl Plugin for BindingsPlugin {
             released: HashSet::new(),
             holding: HashSet::new(),
         });
+
         app.add_systems(
             Update,
             convert_inputs_to_actions
@@ -52,11 +48,12 @@ impl Plugin for BindingsPlugin {
     }
 }
 
-/// Hashmap that contains the KeyCombination to Action bindings
+/// Hashmap that contains Actions and their corresponding key combinations
+/// If an Action has no binding, it should be removed from the hashmap
 #[derive(Resource, Debug, Eq, PartialEq)]
-pub struct KeyBindings(pub HashMap<InputCombination, Action>);
+pub struct KeyBindings(pub HashMap<Action, Vec<Input>>);
 
-/// resource that keeps track of which actions were initiated by keypressed in this frame
+/// resource that keeps track of which actions were initiated by keypresses in this frame
 #[derive(Resource, Debug)]
 pub struct Actions {
     pub pressed: HashSet<Action>,
@@ -64,7 +61,7 @@ pub struct Actions {
     pub holding: HashSet<Action>,
 }
 
-/// resource that keeps track of which actions were initiated by keypressed since the last FixedUpdate
+/// resource that keeps track of which actions were initiated by keypresses since the last FixedUpdate
 #[derive(Resource, Debug)]
 pub struct FixedActions {
     pub pressed: HashSet<Action>,
@@ -73,10 +70,10 @@ pub struct FixedActions {
 }
 
 /// Enum that defines all actions that can be done by the player
-#[derive(Debug, Eq, PartialEq, Hash)]
+#[derive(Debug, Eq, PartialEq, Hash, Clone, Copy)]
 pub enum Action {
     MoveForward,
-    MoveBackwards,
+    MoveBackward,
     MoveLeft,
     MoveRight,
     Jump,
@@ -96,20 +93,64 @@ fn convert_inputs_to_actions(
     mut inputs: ResMut<Inputs>,
     mut actions: ResMut<Actions>,
     mut fixed_actions: ResMut<FixedActions>,
+    key_bindings: Res<KeyBindings>,
 ) {
-    for pressed in &inputs.pressed {
-        let mut input_constructor: fn(Input) -> InputCombination = InputCombination::Unmodified;
-        let modified = false;
-        if let Input::Keyboard(key) = *pressed {
-            if key == KeyCode::ShiftLeft || key == KeyCode::ShiftRight {
-                input_constructor = InputCombination::ShiftModified;
-            } else if key == KeyCode::ControlLeft || key == KeyCode::ControlRight {
-                input_constructor = InputCombination::CtrlModified;
-            } else if key == KeyCode::SuperLeft || key == KeyCode::SuperRight {
-                input_constructor = InputCombination::SuperModified;
-            } else if key == KeyCode::AltLeft || key == KeyCode::AltRight {
-                input_constructor = InputCombination::AltModified;
-            }
+    let mut new_actions = Actions {
+        pressed: HashSet::new(),
+        released: HashSet::new(),
+        holding: HashSet::new(),
+    };
+
+    //find all matching bindings being held
+    for (action, keys) in key_bindings.0.iter() {
+        if keys.iter().all(|key| inputs.holding.contains(key)) {
+            new_actions.holding.insert(action.clone());
         }
+    }
+    //filter out clashes
+    new_actions.holding = new_actions
+        .holding
+        .iter()
+        .copied()
+        .filter(|binding| {
+            let key_combination = key_bindings.0.get(binding).unwrap();
+            for other_binding in new_actions.holding.iter() {
+                let other_key_combination = key_bindings.0.get(other_binding).unwrap();
+                for key in key_combination {
+                    for other_key in other_key_combination {
+                        if key == other_key && key_combination.len() < other_key_combination.len() {
+                            return false;
+                        }
+                    }
+                }
+            }
+            true
+        })
+        .collect();
+
+    //detect released keys
+    for action in actions.holding.iter() {
+        if !new_actions.holding.contains(action) {
+            new_actions.released.insert(*action);
+        }
+    }
+
+    //detect newly pressed keys
+    for action in new_actions.holding.iter() {
+        if !actions.holding.contains(action) {
+            new_actions.pressed.insert(*action);
+        }
+    }
+
+    //update action hashsets with new values
+    actions.holding = new_actions.holding.iter().cloned().collect();
+    actions.pressed = new_actions.pressed.iter().cloned().collect();
+    actions.released = new_actions.released.iter().cloned().collect();
+    fixed_actions.holding = new_actions.holding;
+    for pressed in new_actions.pressed {
+        fixed_actions.pressed.insert(pressed);
+    }
+    for released in new_actions.released {
+        fixed_actions.pressed.insert(released);
     }
 }
