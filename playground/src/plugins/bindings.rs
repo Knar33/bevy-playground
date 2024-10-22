@@ -79,18 +79,9 @@ pub enum Action {
     Jump,
 }
 
-#[derive(Debug, Eq, PartialEq, Hash)]
-pub enum InputCombination {
-    Unmodified(Input),
-    ShiftModified(Input),
-    CtrlModified(Input),
-    SuperModified(Input),
-    AltModified(Input),
-}
-
 /// system that reads keystrokes every frame and records them to a HashSet resource Keystrokes
 fn convert_inputs_to_actions(
-    mut inputs: ResMut<Inputs>,
+    inputs: Res<Inputs>,
     mut actions: ResMut<Actions>,
     mut fixed_actions: ResMut<FixedActions>,
     key_bindings: Res<KeyBindings>,
@@ -104,7 +95,7 @@ fn convert_inputs_to_actions(
     //find all matching bindings being held
     for (action, keys) in key_bindings.0.iter() {
         if keys.iter().all(|key| inputs.holding.contains(key)) {
-            new_actions.holding.insert(action.clone());
+            new_actions.holding.insert(*action);
         }
     }
     //filter out clashes
@@ -143,14 +134,14 @@ fn convert_inputs_to_actions(
     }
 
     //update action hashsets with new values
-    actions.holding = new_actions.holding.iter().cloned().collect();
-    actions.pressed = new_actions.pressed.iter().cloned().collect();
-    actions.released = new_actions.released.iter().cloned().collect();
+    actions.holding.clone_from(&new_actions.holding);
+    actions.pressed.clone_from(&new_actions.pressed);
+    actions.released.clone_from(&new_actions.released);
     fixed_actions.holding = new_actions.holding;
     for pressed in new_actions.pressed {
         fixed_actions.pressed.insert(pressed);
     }
     for released in new_actions.released {
-        fixed_actions.pressed.insert(released);
+        fixed_actions.released.insert(released);
     }
 }
