@@ -45,6 +45,8 @@ impl Plugin for BindingsPlugin {
                 .after(input::read_input_events)
                 .after(input::read_mouse_movement_events),
         );
+
+        app.add_systems(FixedPostUpdate, clear_fixed_actions);
     }
 }
 
@@ -144,4 +146,10 @@ fn convert_inputs_to_actions(
     for released in new_actions.released {
         fixed_actions.released.insert(released);
     }
+}
+
+fn clear_fixed_actions(mut fixed_actions: ResMut<FixedActions>) {
+    fixed_actions.pressed.clear();
+    fixed_actions.holding.clear();
+    fixed_actions.released.clear();
 }
