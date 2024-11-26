@@ -8,6 +8,7 @@ use bevy::{
     utils::HashSet,
 };
 
+/// Plugin that handles raw keyboard, mouse, and other inputs and stores them for later use
 pub struct InputPlugin;
 
 impl Plugin for InputPlugin {
@@ -19,17 +20,23 @@ impl Plugin for InputPlugin {
         });
         app.insert_resource(MouseMovement { x: 0., y: 0. });
         app.insert_resource(FixedMouseMovement { x: 0., y: 0. });
+
+        app.configure_sets(PreUpdate, ReadInputSet.after(InputSystem));
+
         app.add_systems(
             PreUpdate,
-            (read_input_events, read_mouse_movement_events).after(InputSystem),
+            (read_input_events, read_mouse_movement_events).in_set(ReadInputSet),
         );
         app.add_systems(FixedPostUpdate, cleanup_fixed_mouse_movement);
         app.add_systems(Update, detect_keyboard_focus_lost);
-        app.add_systems(PostUpdate, cleanup_inputs);
+        app.add_systems(PostUpdate, (cleanup_inputs, cleanup_mouse_movement));
     }
 }
 
-/// resource that keeps track of which keys were pressed every frame to be converted into bindings
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ReadInputSet;
+
+/// resource that keeps track of which inputs were pressed every frame
 #[derive(Resource, Debug)]
 pub struct Inputs {
     pub pressed: HashSet<Input>,
@@ -57,7 +64,7 @@ pub enum Input {
     Mouse(MouseButton),
 }
 
-/// system that reads keystrokes every frame and records them to a HashSet resource Keystrokes
+/// system that reads keystrokes and mouse clicks every frame and records them to a HashSet resource Keystrokes
 pub fn read_input_events(
     mut keyboard_events: EventReader<KeyboardInput>,
     mut inputs: ResMut<Inputs>,
@@ -90,7 +97,7 @@ pub fn read_input_events(
     }
 }
 
-//system that reads mouse clicks and cursor movement and stores them in the appropriate resources
+/// system that reads mouse cursor movement and it for use by other systems
 pub fn read_mouse_movement_events(
     mut mouse_motion_events: EventReader<MouseMotion>,
     mut mouse_movement: ResMut<MouseMovement>,
@@ -104,7 +111,7 @@ pub fn read_mouse_movement_events(
     }
 }
 
-/// system to track window focus to reset keystroke state if the window changes release all held keys
+/// system to track window focus to reset keystroke state - if the window changes release all held keys
 pub fn detect_keyboard_focus_lost(
     mut keyboard_focus_lost: EventReader<KeyboardFocusLost>,
     mut inputs: ResMut<Inputs>,
@@ -121,8 +128,14 @@ pub fn cleanup_inputs(mut inputs: ResMut<Inputs>) {
     inputs.released.clear();
 }
 
-/// system that resets all mouse movement at the end of fixed update
+/// system that resets fixed mouse movement at the end of fixed update
 pub fn cleanup_fixed_mouse_movement(mut mouse_movement: ResMut<FixedMouseMovement>) {
+    mouse_movement.x = 0.;
+    mouse_movement.y = 0.;
+}
+
+/// system that resets mouse movement at the end of fixed update
+pub fn cleanup_mouse_movement(mut mouse_movement: ResMut<MouseMovement>) {
     mouse_movement.x = 0.;
     mouse_movement.y = 0.;
 }

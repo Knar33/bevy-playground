@@ -5,7 +5,9 @@ edition = "2021"
 
 [dependencies]
 bevy = { version = "0.14.2", features = ["dynamic_linking"] } # TODO: Remove this when pushing release
-log = { version = "*", features = ["max_level_debug", "release_max_level_warn"] }
+avian3d = "0.1"
+bevy-tnua-avian3d = "0.1.1"
+bevy-tnua = "0.20.0"
 
 # Enable a small amount of optimization in the dev profile.
 [profile.dev]

@@ -6,9 +6,10 @@ use bevy::{
 
 use crate::plugins::{
     input,
-    input::{Input, Inputs},
+    input::{Input, Inputs, ReadInputSet},
 };
 
+/// Plugin that handles everything related to keybindings -> actions conversion
 pub struct BindingsPlugin;
 
 impl Plugin for BindingsPlugin {
@@ -17,22 +18,14 @@ impl Plugin for BindingsPlugin {
             (Action::MoveForward, vec![Input::Keyboard(KeyCode::KeyW)]),
             (Action::MoveLeft, vec![Input::Keyboard(KeyCode::KeyA)]),
             (Action::MoveRight, vec![Input::Keyboard(KeyCode::KeyD)]),
-            //(Action::MoveBackward, vec![Input::Keyboard(KeyCode::KeyS)]),
-            (
-                Action::MoveBackward,
-                vec![
-                    Input::Keyboard(KeyCode::KeyW),
-                    Input::Keyboard(KeyCode::ShiftLeft),
-                ],
-            ),
+            (Action::MoveBackward, vec![Input::Keyboard(KeyCode::KeyS)]),
+            (Action::Jump, vec![Input::Keyboard(KeyCode::Space)]),
         ])));
-
         app.insert_resource(Actions {
             pressed: HashSet::new(),
             released: HashSet::new(),
             holding: HashSet::new(),
         });
-
         app.insert_resource(FixedActions {
             pressed: HashSet::new(),
             released: HashSet::new(),
@@ -40,12 +33,9 @@ impl Plugin for BindingsPlugin {
         });
 
         app.add_systems(
-            Update,
-            convert_inputs_to_actions
-                .after(input::read_input_events)
-                .after(input::read_mouse_movement_events),
+            PreUpdate,
+            convert_inputs_to_actions.after(input::ReadInputSet),
         );
-
         app.add_systems(FixedPostUpdate, clear_fixed_actions);
     }
 }
@@ -81,7 +71,7 @@ pub enum Action {
     Jump,
 }
 
-/// system that reads keystrokes every frame and records them to a HashSet resource Keystrokes
+/// system that reads the input hashsets every frame and converts them into actions which are stored in two hashsets (one for update and one for fixedupdate)
 fn convert_inputs_to_actions(
     inputs: Res<Inputs>,
     mut actions: ResMut<Actions>,
@@ -111,6 +101,7 @@ fn convert_inputs_to_actions(
                 let other_key_combination = key_bindings.0.get(other_binding).unwrap();
                 for key in key_combination {
                     for other_key in other_key_combination {
+                        //TODO: This is only checking for 1 overlapping key - if we want to allow 3-key bindings then this has to check for a full subset
                         if key == other_key && key_combination.len() < other_key_combination.len() {
                             return false;
                         }
@@ -148,8 +139,8 @@ fn convert_inputs_to_actions(
     }
 }
 
+/// empty the hashsets at the end of the FixedUpdate (not necessary for actions because they are overwritten every frame already)
 fn clear_fixed_actions(mut fixed_actions: ResMut<FixedActions>) {
     fixed_actions.pressed.clear();
-    fixed_actions.holding.clear();
     fixed_actions.released.clear();
 }
